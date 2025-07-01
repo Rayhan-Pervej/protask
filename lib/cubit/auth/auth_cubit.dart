@@ -85,22 +85,12 @@ class AuthCubit extends Cubit<AuthState> {
   void logout(BuildContext context) async {
     emit(state.copyWith(true, false, false, null));
     try {
-      // Remove token from shared preferences
       await sharedPrefs.removeToken();
-
-      // Trigger logout event for other parts of the app
       LogoutEvent().triggerLogout();
-
-      // Clear form controllers
       emailController.clear();
       passwordController.clear();
-
       if (!context.mounted) return;
-
-      // Update state to logged out
       emit(state.copyWith(false, false, false, null));
-
-      // Show success message
       Snackbar.successSnackbar(
         context,
         title: "Logout Successful",
@@ -116,8 +106,6 @@ class AuthCubit extends Cubit<AuthState> {
       emit(state.copyWith(false, true, false, e.toString()));
 
       if (!context.mounted) return;
-
-      // Show error message
       Snackbar.errorSnackbar(
         context,
         title: "Logout Failed",

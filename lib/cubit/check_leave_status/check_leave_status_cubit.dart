@@ -15,13 +15,9 @@ class CheckLeaveStatusCubit extends Cubit<CheckLeaveStatusState> {
         emit(CheckLeaveStatusError('Token not found'));
         return;
       }
-
       Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
       int userId = decodedToken['id'];
-
       final applications = await apiHandle.getUserLeaveApplications(userId);
-      print(applications);
-
       final List<Map<String, dynamic>> filteredApplications =
           applications.map((applications) {
             final updatedDateStr = applications['updated_at'] as String?;
@@ -29,8 +25,6 @@ class CheckLeaveStatusCubit extends Cubit<CheckLeaveStatusState> {
                 updatedDateStr != null
                     ? DateTime.tryParse(updatedDateStr) ?? DateTime(0)
                     : DateTime(0);
-
-            print(approvedDate);
             return {
               'id': applications['id'],
               'subject': applications['subject'],
@@ -39,15 +33,13 @@ class CheckLeaveStatusCubit extends Cubit<CheckLeaveStatusState> {
               'reason': applications['reason'],
               'startDate': applications['start_date'],
               'endDate': applications['end_date'],
-              'status': applications['status'],
+              'status': applications['status'], // updated status
               'created': applications['created_at'],
               'updated': approvedDate,
             };
           }).toList();
-
       emit(CheckLeaveStatusLoaded(filteredApplications));
     } catch (e) {
-      print(e.toString());
       emit(CheckLeaveStatusError(e.toString()));
     }
   }

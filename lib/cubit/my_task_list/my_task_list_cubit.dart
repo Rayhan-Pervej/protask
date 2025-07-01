@@ -125,7 +125,6 @@ class MyTaskListCubit extends Cubit<MyTaskListState> {
     required List<int> userIds,
     required int isRecurring,
   }) async {
-    // Don't update if the status is the same
     if (currentStatus == targetStatus) {
       emit(MyTaskListError('Task is already in $targetStatus status'));
       return;
@@ -134,14 +133,12 @@ class MyTaskListCubit extends Cubit<MyTaskListState> {
     emit(TaskStatusUpdating());
 
     try {
-      // Calculate the new list_id based on status change
       final newListId = calculateListId(
         currentListId,
         currentStatus,
         targetStatus,
       );
 
-      // Call the API to update the task with all required parameters
       final response = await apiHandle.updateTaskStatus(
         taskId: taskId,
         title: title,

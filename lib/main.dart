@@ -21,6 +21,8 @@ void main() async {
   bool isTokenValid = token != null && token.isNotEmpty;
   runApp(
     MultiBlocProvider(
+
+      
       providers: [
         BlocProvider<NetworkCubit>(create: (context) => NetworkCubit()),
         BlocProvider<AuthCubit>(create: (context) => AuthCubit()),

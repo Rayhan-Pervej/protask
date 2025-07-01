@@ -109,11 +109,7 @@ class AddTaskCubit extends Cubit<AddTaskState> {
   void postTask(BuildContext context) async {
     emit(
       AddTaskLoaded(
-        filteredProjects,
-        filteredBoards,
-        selectedProjectId,
-        selectedBoardId,
-        isSubmitting: true,
+        filteredProjects, filteredBoards, selectedProjectId, selectedBoardId, isSubmitting: true,
       ),
     );
     try {
@@ -121,19 +117,12 @@ class AddTaskCubit extends Cubit<AddTaskState> {
           (datetime ?? "").isNotEmpty ? "${datetime!}:00" : "";
 
       final taskData = {
-        "title": titleController.text,
-        "description": descriptionController.text,
-        "datetime": formattedDatetime, // Ensure :00 at the end
-        "assignees": selectedUserIds,
-        "project": selectedProjectId,
-        "board": selectedBoardId,
-        "recurring": recurring ? 1 : 0,
+        "title": titleController.text, "description": descriptionController.text, "datetime": formattedDatetime,  "assignees": selectedUserIds,
+        "project": selectedProjectId, "board": selectedBoardId, "recurring": recurring ? 1 : 0,
       };
-
       final response = await apiHandle.uploadTask(taskData);
       if (!context.mounted) return;
-      Snackbar.successSnackbar(
-        context,
+      Snackbar.successSnackbar( context,
         title: 'Success!',
         icon: FontAwesomeIcons.squareCheck,
         message: response['message'],
@@ -142,18 +131,10 @@ class AddTaskCubit extends Cubit<AddTaskState> {
     } catch (e) {
       emit(
         AddTaskLoaded(
-          filteredProjects,
-          filteredBoards,
-          selectedProjectId,
-          selectedBoardId,
-          isSubmitting: false,
+          filteredProjects, filteredBoards, selectedProjectId, selectedBoardId, isSubmitting: false,
         ),
       );
-      Snackbar.successSnackbar(
-        context,
-        title: 'Failed!',
-        icon: FontAwesomeIcons.xmark,
-        message: 'Try again',
+      Snackbar.successSnackbar( context, title: 'Failed!', icon: FontAwesomeIcons.xmark, message: 'Try again',
       );
     }
   }

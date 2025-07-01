@@ -118,19 +118,13 @@ class ApiHandle {
         endpoint: 'createtask',
         method: 'POST',
         body: {
-          "token": await sharedPrefs.getToken(),
-          "title": taskData["title"],
-          "description": taskData["description"],
-          "due_date": taskData["datetime"],
-          "user_id": taskData["assignees"],
-          "project_id": taskData["project"],
-          "list_id": taskData["board"],
-          "is_recurring": taskData["recurring"],
-          "is_done": 0,
-          "is_archive": 0,
+          "token": await sharedPrefs.getToken(), "title": taskData["title"],
+          "description": taskData["description"], "due_date": taskData["datetime"],
+          "user_id": taskData["assignees"], "project_id": taskData["project"],
+          "list_id": taskData["board"], "is_recurring": taskData["recurring"],
+          "is_done": 0, "is_archive": 0,
         },
       );
-
       return jsonDecode(response.body);
     } catch (e) {
       throw Exception('Failed to upload task: $e');
