@@ -1,3 +1,6 @@
+// Complete Solution 1: Using SizeTransition (Recommended)
+// This properly animates the height and moves everything up smoothly
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -12,7 +15,6 @@ import 'package:protask/screens/home/widgets/task_list.dart';
 import 'package:protask/screens/tasks/add_task.dart';
 import 'package:protask/services/client_config.dart/api_handle.dart';
 
-
 class Home extends StatefulWidget {
   const Home({super.key});
 
@@ -20,14 +22,26 @@ class Home extends StatefulWidget {
   State<Home> createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
+class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   String selectedStatus = "In Progress";
   final ScrollController _scrollController = ScrollController();
-  bool _showHeader = true;
+  late AnimationController _animationController;
+  late Animation<double> _sizeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+      value: 1.0, // Start with header visible
+    );
+
+    _sizeAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+
     _scrollController.addListener(_scrollListener);
   }
 
@@ -35,83 +49,18 @@ class _HomeState extends State<Home> {
   void dispose() {
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
   void _scrollListener() {
     if (_scrollController.hasClients) {
-      final shouldShow = _scrollController.offset <= 50;
-      if (shouldShow != _showHeader) {
-        setState(() {
-          _showHeader = shouldShow;
-        });
+      if (_scrollController.offset > 50) {
+        _animationController.reverse(); // Hide header
+      } else {
+        _animationController.forward(); // Show header
       }
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.grey.shade50,
-        body: BlocListener<MyTaskListCubit, MyTaskListState>(
-          listener: _handleBlocListener,
-          child: Column(
-            children: [
-              // Header Section with Welcome Message
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                height: _showHeader ? null : 0,
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 300),
-                  opacity: _showHeader ? 1.0 : 0.0,
-                  child: _showHeader
-                      ? const HeaderSection()
-                      : const SizedBox.shrink(),
-                ),
-              ),
-
-              // Status Tabs
-              StatusTabs(
-                selectedStatus: selectedStatus,
-                onStatusChanged: (status) => setState(() => selectedStatus = status),
-              ),
-
-              // Task List
-              Expanded(
-                child: BlocBuilder<MyTaskListCubit, MyTaskListState>(
-                  builder: (context, state) {
-                    if (state is MyTaskListLoading || state is TaskStatusUpdating) {
-                      return const LoadingState();
-                    } else if (state is MyTaskListError) {
-                      return ErrorState(message: state.message);
-                    } else if (state is MyTaskListLoaded) {
-                      final filteredTasks = state.tasks
-                          .where((task) => task['status'] == selectedStatus)
-                          .toList();
-                      return TasksList(
-                        filteredTasks: filteredTasks,
-                        scrollController: _scrollController,
-                        selectedStatus: selectedStatus,
-                        onCreateTask: _navigateToAddTask,
-                      );
-                    } else if (state is UpdateTaskStatusSuccess) {
-                      // After successful update, refetch tasks to show updated data
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        context.read<MyTaskListCubit>().fetchTasks();
-                      });
-                      return const LoadingState();
-                    }
-                    return const ErrorState(message: "Something went wrong!");
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-        floatingActionButton: _buildFloatingActionButton(),
-      ),
-    );
   }
 
   void _handleBlocListener(BuildContext context, MyTaskListState state) {
@@ -120,11 +69,7 @@ class _HomeState extends State<Home> {
         SnackBar(
           content: Row(
             children: [
-              Icon(
-                FontAwesomeIcons.circleCheck,
-                color: Colors.white,
-                size: 16,
-              ),
+              Icon(FontAwesomeIcons.circleCheck, color: Colors.white, size: 16),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -136,9 +81,7 @@ class _HomeState extends State<Home> {
           ),
           backgroundColor: Colors.green.shade600,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           duration: const Duration(seconds: 3),
         ),
       );
@@ -163,9 +106,7 @@ class _HomeState extends State<Home> {
           ),
           backgroundColor: Colors.red.shade600,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           duration: const Duration(seconds: 4),
         ),
       );
@@ -191,18 +132,85 @@ class _HomeState extends State<Home> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MultiBlocProvider(
-          providers: [
-            BlocProvider(
-              create: (context) => UserlistCubit(ApiHandle())..fetchUsers(),
+        builder:
+            (context) => MultiBlocProvider(
+              providers: [
+                BlocProvider(
+                  create: (context) => UserlistCubit(ApiHandle())..fetchUsers(),
+                ),
+                BlocProvider(create: (context) => AddTaskCubit(ApiHandle())),
+                BlocProvider(
+                  create:
+                      (context) => AddTaskCubit(ApiHandle())..fetchProjects(),
+                ),
+              ],
+              child: AddTask(),
             ),
-            BlocProvider(create: (context) => AddTaskCubit(ApiHandle())),
-            BlocProvider(
-              create: (context) => AddTaskCubit(ApiHandle())..fetchProjects(),
-            ),
-          ],
-          child: AddTask(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: Colors.grey.shade50,
+        body: BlocListener<MyTaskListCubit, MyTaskListState>(
+          listener: _handleBlocListener,
+          child: Column(
+            children: [
+              // Header with SizeTransition
+              SizeTransition(
+                sizeFactor: _sizeAnimation,
+                axisAlignment: -1.0, // Slide from top
+                child: FadeTransition(
+                  opacity: _sizeAnimation,
+                  child: const HeaderSection(),
+                ),
+              ),
+
+              // Status Tabs
+              StatusTabs(
+                selectedStatus: selectedStatus,
+                onStatusChanged:
+                    (status) => setState(() => selectedStatus = status),
+              ),
+
+              // Task List
+              Expanded(
+                child: BlocBuilder<MyTaskListCubit, MyTaskListState>(
+                  builder: (context, state) {
+                    if (state is MyTaskListLoading ||
+                        state is TaskStatusUpdating) {
+                      return const LoadingState();
+                    } else if (state is MyTaskListError) {
+                      return ErrorState(message: state.message);
+                    } else if (state is MyTaskListLoaded) {
+                      final filteredTasks =
+                          state.tasks
+                              .where((task) => task['status'] == selectedStatus)
+                              .toList();
+                      return TasksList(
+                        filteredTasks: filteredTasks,
+                        scrollController: _scrollController,
+                        selectedStatus: selectedStatus,
+                        onCreateTask: _navigateToAddTask,
+                      );
+                    } else if (state is UpdateTaskStatusSuccess) {
+                      // After successful update, refetch tasks to show updated data
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        context.read<MyTaskListCubit>().fetchTasks();
+                      });
+                      return const LoadingState();
+                    }
+                    return const ErrorState(message: "Something went wrong!");
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
+        floatingActionButton: _buildFloatingActionButton(),
       ),
     );
   }
